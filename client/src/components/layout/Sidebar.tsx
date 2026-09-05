@@ -1,46 +1,22 @@
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
-import { useQuery } from '@tanstack/react-query'
-import api from '@/services/api'
-import type { StockResumen } from '@/types'
-import { Badge } from '@/components/ui/badge'
 import {
-  LayoutDashboard, Package, ArmchairIcon, ClipboardList, LogOut, X, Truck, Users, User, BarChart2
+  LayoutDashboard, MenuSquare, ListOrdered, History, DollarSign, Map, Settings, LogOut, X
 } from 'lucide-react'
 
 const adminLinks = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/ingreso-stock', label: 'Ingreso de stock', icon: Truck },
-  { to: '/componentes', label: 'Componentes', icon: Package },
-  { to: '/tipos-silla', label: 'Tipos de silla', icon: ArmchairIcon },
-  { to: '/ordenes-trabajo', label: 'Órdenes de trabajo', icon: ClipboardList },
-  { to: '/stock-armado', label: 'Stock Armado', icon: Package },
-  { to: '/reparto', label: 'Reparto', icon: Truck },
-]
-
-const operarioLinks = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/stock', label: 'Stock', icon: Package },
-  { to: '/tipos-silla', label: 'Tipos de silla', icon: ArmchairIcon },
-  { to: '/ordenes-trabajo', label: 'Órdenes de trabajo', icon: ClipboardList },
-  { to: '/stock-armado', label: 'Stock Armado', icon: Package },
-  { to: '/reparto', label: 'Reparto', icon: Truck },
+  { to: '/catalogo', label: 'Catálogo', icon: MenuSquare },
+  { to: '/pedidos', label: 'Pedidos Live', icon: ListOrdered },
+  { to: '/historial', label: 'Historial de Ventas', icon: History },
+  { to: '/ganancias', label: 'Ganancias', icon: DollarSign },
+  { to: '/rutas', label: 'Hojas de Ruta', icon: Map },
+  { to: '/configuracion', label: 'Configuración', icon: Settings },
 ]
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { user, logout } = useAuth()
-  const isAdmin = user?.role === 'admin'
-  const links = isAdmin ? adminLinks : operarioLinks
-
-  const { data: resumenData } = useQuery<{ data: StockResumen }>({
-    queryKey: ['stock-resumen'],
-    queryFn: () => api.get('/stock/resumen').then((r) => r.data),
-    refetchInterval: 30000,
-    staleTime: 15000,
-  })
-
-  const stockBajoCount = (resumenData?.data.componentes ?? []).filter((c) => c.stockBajo).length
+  const { logout } = useAuth()
 
   return (
     <>
@@ -52,15 +28,14 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         )}
       >
         <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-          <span className="font-bold text-lg text-sidebar-primary font-heading">Stock OC</span>
+          <span className="font-bold text-lg text-sidebar-primary font-heading">Real Burger Admin</span>
           <button onClick={onClose} className="md:hidden text-sidebar-foreground cursor-pointer">
             <X size={20} />
           </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-          {links.map((link) => {
-            const showBadge = link.to === '/componentes' && isAdmin && stockBajoCount > 0
+          {adminLinks.map((link) => {
             return (
               <NavLink
                 key={link.to}
@@ -78,66 +53,12 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
               >
                 <link.icon size={18} />
                 <span className="flex-1">{link.label}</span>
-                {showBadge && (
-                  <Badge variant="destructive" className="h-5 min-w-5 flex items-center justify-center px-1.5 text-xs">
-                    {stockBajoCount}
-                  </Badge>
-                )}
               </NavLink>
             )
           })}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border space-y-1 mt-auto">
-          {isAdmin && (
-            <>
-              <NavLink
-                to="/ranking"
-                onClick={onClose}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                    isActive
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                  )
-                }
-              >
-                <BarChart2 size={18} />
-                Gráficos y estadísticas
-              </NavLink>
-              <NavLink
-                to="/usuarios"
-                onClick={onClose}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                    isActive
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                  )
-                }
-              >
-                <Users size={18} />
-                Usuarios
-              </NavLink>
-            </>
-          )}
-          <NavLink
-            to="/perfil"
-            onClick={onClose}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                isActive
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-              )
-            }
-          >
-            <User size={18} />
-            Mi perfil
-          </NavLink>
+        <div className="p-4 border-t border-sidebar-border mt-auto">
           <button
             onClick={logout}
             className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full cursor-pointer"
@@ -150,3 +71,4 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
     </>
   )
 }
+

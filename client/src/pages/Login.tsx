@@ -32,7 +32,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#111111' }}>
       <Card className="w-full max-w-sm border-0 shadow-2xl" style={{ backgroundColor: '#1a1a1a' }}>
         <CardHeader className="text-center">
-          <CardTitle className="font-heading text-2xl" style={{ color: '#ffffff' }}>Stock OC</CardTitle>
+          <CardTitle className="font-heading text-2xl" style={{ color: '#ffffff' }}>Admin Login</CardTitle>
           <p className="text-sm mt-1" style={{ color: '#9ca3af' }}>Iniciar sesión</p>
         </CardHeader>
         <CardContent>

@@ -18,7 +18,7 @@ const titles: Record<string, string> = {
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
-  const title = titles[location.pathname] ?? 'Stock OC'
+  const title = titles[location.pathname] ?? 'Admin Panel'
   const { socket } = useLiveSockets()
   const queryClient = useQueryClient()
 

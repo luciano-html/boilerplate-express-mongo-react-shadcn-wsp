@@ -5,14 +5,15 @@ import path from 'path'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiUrl = env.VITE_API_URL || 'http://localhost:3000'
+  const apiUrl = env.VITE_API_URL || 'http://localhost:5000'
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react()],
     resolve: {
       alias: { '@': path.resolve(__dirname, './src') },
     },
     server: {
+      port: 3001,
       proxy: { '/api': apiUrl },
       allowedHosts: true,
     },

@@ -20,14 +20,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     api
       .get('/auth/me')
-      .then((res) => setUser(res.data.data))
+      .then((res) => setUser(res.data?.user || res.data?.data?.user))
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
   }, [])
 
   const login = useCallback(async (username: string, password: string) => {
-    const { data } = await api.post('/auth/login', { username, password })
-    setUser(data.data.user)
+    const { data } = await api.post('/auth/login', { email: username, password })
+    setUser(data.data?.user || data.user)
   }, [])
 
   const logout = useCallback(async () => {

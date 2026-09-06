@@ -59,7 +59,7 @@ export default function PedidosLive() {
       <div className="p-4 space-y-4">
         <h1 className="text-2xl font-bold mb-4">Pedidos Live</h1>
         {columns.map(col => (
-          <div key={col.id} className="border rounded-md p-4 bg-gray-50">
+          <div key={col.id} className="border rounded-md p-4 bg-muted/20">
             <h2 className="font-bold text-lg mb-2">{col.title} ({getOrdersByStatus(col.id).length})</h2>
             <div className="space-y-2">
               {getOrdersByStatus(col.id).map(o => (
@@ -93,8 +93,8 @@ export default function PedidosLive() {
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex gap-4 flex-1 overflow-x-auto pb-4">
           {columns.map(col => (
-            <div key={col.id} className="w-80 flex-shrink-0 flex flex-col bg-gray-100 rounded-lg">
-              <div className="p-3 font-bold border-b bg-gray-200 rounded-t-lg flex justify-between">
+            <div key={col.id} className="w-80 flex-shrink-0 flex flex-col bg-muted/30 border rounded-lg">
+              <div className="p-3 font-bold border-b bg-muted/50 rounded-t-lg flex justify-between">
                 <span>{col.title}</span>
                 <Badge variant="secondary">{getOrdersByStatus(col.id).length}</Badge>
               </div>

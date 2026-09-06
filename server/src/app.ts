@@ -42,11 +42,17 @@ import whatsappRoutes from './routes/whatsappRoutes';
 import orderRoutes from './routes/orderRoutes';
 import productRoutes from './routes/productRoutes';
 
+import uploadRoutes from './routes/uploadRoutes';
+
 app.use('/api/auth', authRoutes);
 app.use('/api/config', storeConfigRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/upload', uploadRoutes);
+
+// Static files for uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use('/api/*', (_req, _res, next) => {
   next(ApiError.notFound('Ruta no encontrada'));

@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { Product as ISharedProduct, ProductOptionGroup } from 'shared/index';
 
-export interface IProduct extends Omit<ISharedProduct, 'id'>, Document {}
+export interface IProduct extends Omit<ISharedProduct, 'id' | '_id'>, Document {}
 
 const productOptionSchema = new Schema({
   name: { type: String, required: true },

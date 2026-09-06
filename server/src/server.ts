@@ -3,6 +3,7 @@ dotenv.config();
 
 import app from './app';
 import { connectDB } from './config/db';
+import { whatsappService } from './services/whatsappService';
 
 const PORT = Number(process.env.PORT ?? 3000);
 
@@ -56,8 +57,6 @@ async function main() {
   });
 
   app.set('io', io);
-
-  import { whatsappService } from './services/whatsappService';
 
   whatsappService.on('qr', (qr) => {
     io.emit('whatsapp_qr', qr);

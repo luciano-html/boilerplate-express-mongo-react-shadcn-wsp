@@ -11,7 +11,8 @@ export interface ProductOptionGroup {
 }
 
 export interface Product {
-  id: string;
+  _id?: string;
+  id?: string;
   name: string;
   description?: string;
   price: number;
@@ -39,7 +40,8 @@ export interface OrderItem {
 }
 
 export interface Order {
-  id: string;
+  _id?: string;
+  id?: string;
   items: OrderItem[];
   total: number;
   customerName: string;
@@ -57,7 +59,8 @@ export interface Order {
 }
 
 export interface User {
-  id: string;
+  _id?: string;
+  id?: string;
   email: string;
   role: 'admin' | 'staff';
   createdAt: Date;
@@ -65,6 +68,7 @@ export interface User {
 }
 
 export interface DeliveryZone {
+  _id?: string;
   id?: string;
   city: 'Santo Tomé' | 'Santa Fe';
   neighborhood: string;
@@ -73,7 +77,8 @@ export interface DeliveryZone {
 }
 
 export interface StoreConfig {
-  id: string;
+  _id?: string;
+  id?: string;
   name: string;
   whatsapp: string;
   currency: string;

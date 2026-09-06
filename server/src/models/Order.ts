@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { Order as ISharedOrder, OrderItem, SelectedOption } from 'shared/index';
 
-export interface IOrder extends Omit<ISharedOrder, 'id' | 'items'>, Document {
+export interface IOrder extends Omit<ISharedOrder, 'id' | '_id' | 'items'>, Document {
   items: (Omit<OrderItem, 'productId'> & { productId: mongoose.Types.ObjectId })[];
 }
 

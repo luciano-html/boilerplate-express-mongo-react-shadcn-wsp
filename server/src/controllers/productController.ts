@@ -3,7 +3,8 @@ import { Product } from '../models/Product';
 
 export const getProducts = async (req: Request, res: Response) => {
   try {
-    const products = await Product.find({ isActive: true });
+    const query = req.query.all === 'true' ? {} : { isActive: true };
+    const products = await Product.find(query);
     res.json(products);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

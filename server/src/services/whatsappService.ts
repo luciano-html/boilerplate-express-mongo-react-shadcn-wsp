@@ -43,6 +43,17 @@ class WhatsappService extends EventEmitter {
       console.log('WhatsApp Client was logged out', reason);
     });
 
+    this.client.on('message', async (msg) => {
+      // Ignore group messages or status
+      if (msg.from === 'status@broadcast' || msg.isStatus || msg.from.includes('@g.us')) return;
+      
+      const contact = await msg.getContact();
+      const senderName = contact.pushname || contact.name || 'Cliente';
+      
+      const { handleIncomingMessage } = require('./chatbotService');
+      await handleIncomingMessage(msg.from, msg.body, senderName);
+    });
+
     this.client.initialize();
   }
 

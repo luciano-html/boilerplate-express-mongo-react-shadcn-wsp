@@ -8,8 +8,7 @@ const Login = lazy(() => import('@/pages/Login'))
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const PedidosLive = lazy(() => import('@/pages/PedidosLive'))
 
-// Creamos placeholders simples por ahora para que compile y la estructura quede armada
-const Catalogo = () => <div>Módulo de Catálogo en construcción</div>
+const Catalogo = lazy(() => import('@/pages/Catalogo'))
 const Historial = () => <div>Historial de Ventas</div>
 const Ganancias = () => <div>Módulo de Ganancias</div>
 const HojasRuta = () => <div>Hojas de Ruta</div>
@@ -29,7 +28,7 @@ const router = createBrowserRouter([
     element: <ProtectedRoute><Layout /></ProtectedRoute>,
     children: [
       { index: true, element: <SuspenseWrapper><Dashboard /></SuspenseWrapper> },
-      { path: 'catalogo', element: <Catalogo /> },
+      { path: 'catalogo', element: <SuspenseWrapper><Catalogo /></SuspenseWrapper> },
       { path: 'pedidos', element: <PedidosLive /> },
       { path: 'historial', element: <Historial /> },
       { path: 'ganancias', element: <Ganancias /> },

@@ -6,15 +6,16 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Smartphone, RefreshCcw, CheckCircle2, XCircle } from 'lucide-react'
+import { Smartphone, RefreshCcw, CheckCircle2, XCircle, Save } from 'lucide-react'
 import { io } from 'socket.io-client'
+import type { StoreConfig } from 'shared'
 
 export default function Configuracion() {
   const queryClient = useQueryClient()
   
-  // WhatsApp Status State
   const [qr, setQr] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
+  const [form, setForm] = useState<Partial<StoreConfig>>({})
 
   const { data: configData, isLoading } = useQuery({
     queryKey: ['store-config'],
@@ -22,13 +23,17 @@ export default function Configuracion() {
   })
 
   useEffect(() => {
-    // Initial fetch for WhatsApp status
+    if (configData) {
+      setForm(configData)
+    }
+  }, [configData])
+
+  useEffect(() => {
     api.get('/whatsapp/status').then(res => {
       setIsConnected(res.data.connected)
       setQr(res.data.qr)
     })
 
-    // Setup socket to listen for WhatsApp events
     const socketURL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : '')
     const socket = io(socketURL, { path: '/socket.io', withCredentials: true })
 
@@ -51,17 +56,30 @@ export default function Configuracion() {
     }
   }, [])
 
+  const updateMutation = useMutation({
+    mutationFn: (newConfig: Partial<StoreConfig>) => api.put('/config', newConfig),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['store-config'] })
+      alert('Configuración guardada correctamente')
+    }
+  })
+
   const handleRefreshQr = async () => {
-    // Restarting the server is usually the best way to force whatsapp-web.js to drop and restart if it's stuck, 
-    // but fetching status again might give us the latest QR if we missed the socket event.
     const res = await api.get('/whatsapp/status')
     setIsConnected(res.data.connected)
     setQr(res.data.qr)
   }
 
-  if (isLoading) return <div>Cargando configuración...</div>
+  const handleChange = (field: keyof StoreConfig, value: string | number) => {
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
 
-  const config = configData?.data
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    updateMutation.mutate(form)
+  }
+
+  if (isLoading) return <div>Cargando configuración...</div>
 
   return (
     <div className="space-y-6">
@@ -109,30 +127,52 @@ export default function Configuracion() {
           </CardContent>
         </Card>
 
-        {/* BASIC CONFIG (Placeholder for now) */}
+        {/* BASIC CONFIG */}
         <Card>
           <CardHeader>
             <CardTitle>Configuración de la Tienda</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nombre del Local</Label>
-              <Input defaultValue={config?.name} readOnly />
-            </div>
-            <div className="space-y-2">
-              <Label>Moneda</Label>
-              <Input defaultValue={config?.currency} readOnly />
-            </div>
-            <div className="space-y-2">
-              <Label>Horarios</Label>
-              <Input defaultValue={config?.businessHours} readOnly />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              (Esta es la estructura genérica. Luego agregaremos el guardado de zonas de envío y ETAs dinámicos).
-            </p>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nombre del Local</Label>
+                <Input value={form.name || ''} onChange={(e) => handleChange('name', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>WhatsApp (Para pedidos y notificaciones)</Label>
+                <Input value={form.whatsapp || ''} onChange={(e) => handleChange('whatsapp', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Moneda (ej. ARS, USD)</Label>
+                <Input value={form.currency || ''} onChange={(e) => handleChange('currency', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Horario de Atención</Label>
+                <Input value={form.businessHours || ''} onChange={(e) => handleChange('businessHours', e.target.value)} placeholder="Ej: Lunes a Viernes de 19 a 23" />
+              </div>
+
+              <div className="pt-4 border-t border-white/10 mt-4 space-y-4">
+                <h3 className="font-semibold text-lg">Variables de Tiempo (ETA)</h3>
+                
+                <div className="space-y-2">
+                  <Label>Tiempo Base de Preparación (Minutos)</Label>
+                  <Input type="number" value={form.basePrepTime || 0} onChange={(e) => handleChange('basePrepTime', Number(e.target.value))} />
+                  <p className="text-xs text-muted-foreground">Tiempo mínimo si no hay otros pedidos.</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Demora extra por Pedido en Cola (Minutos)</Label>
+                  <Input type="number" value={form.delayPerPendingOrder || 0} onChange={(e) => handleChange('delayPerPendingOrder', Number(e.target.value))} />
+                  <p className="text-xs text-muted-foreground">Añade esto al ETA por cada pedido que esté 'En Preparación' antes que este.</p>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
+                <Save size={16} className="mr-2" /> {updateMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
+              </Button>
+            </form>
           </CardContent>
         </Card>
-
       </div>
     </div>
   )

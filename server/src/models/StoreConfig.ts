@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { StoreConfig as ISharedStoreConfig, DeliveryZone } from 'shared/index';
 
-export interface IStoreConfig extends Omit<ISharedStoreConfig, 'id'>, Document {}
+export interface IStoreConfig extends Omit<ISharedStoreConfig, 'id' | '_id'>, Document {}
 
 const deliveryZoneSchema = new Schema({
   city: { type: String, enum: ['Santo Tomé', 'Santa Fe'], required: true },

@@ -1,17 +1,14 @@
+version: '3.8'
+
 services:
   mongodb:
-    image: mongo:8
-    container_name: stock-office-mongo
-    restart: unless-stopped
+    image: mongo:latest
+    container_name: realburger-mongo
     ports:
-      - "27017:27017"
+      - "27018:27017"
     volumes:
-      - mongodb_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - realburger_db_data:/data/db
+    restart: unless-stopped
 
 volumes:
-  mongodb_data:
+  realburger_db_data:

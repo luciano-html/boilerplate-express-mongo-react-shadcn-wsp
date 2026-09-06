@@ -13,7 +13,7 @@ const Catalogo = () => <div>Módulo de Catálogo en construcción</div>
 const Historial = () => <div>Historial de Ventas</div>
 const Ganancias = () => <div>Módulo de Ganancias</div>
 const HojasRuta = () => <div>Hojas de Ruta</div>
-const Configuracion = () => <div>Configuración y WhatsApp</div>
+const Configuracion = lazy(() => import('@/pages/Configuracion'))
 
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<Skeleton className="h-96" />}>{children}</Suspense>
@@ -34,7 +34,7 @@ const router = createBrowserRouter([
       { path: 'historial', element: <Historial /> },
       { path: 'ganancias', element: <Ganancias /> },
       { path: 'rutas', element: <HojasRuta /> },
-      { path: 'configuracion', element: <Configuracion /> },
+      { path: 'configuracion', element: <SuspenseWrapper><Configuracion /></SuspenseWrapper> },
     ],
   },
 ])

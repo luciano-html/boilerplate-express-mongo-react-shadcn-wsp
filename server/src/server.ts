@@ -57,6 +57,20 @@ async function main() {
 
   app.set('io', io);
 
+  import { whatsappService } from './services/whatsappService';
+
+  whatsappService.on('qr', (qr) => {
+    io.emit('whatsapp_qr', qr);
+  });
+
+  whatsappService.on('ready', () => {
+    io.emit('whatsapp_ready');
+  });
+
+  whatsappService.on('disconnected', () => {
+    io.emit('whatsapp_disconnected');
+  });
+
   io.on('connection', (socket) => {
     console.log(`Socket conectado: ${socket.id}`);
     socket.on('disconnect', () => {

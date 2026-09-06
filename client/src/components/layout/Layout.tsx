@@ -7,12 +7,12 @@ import { useQueryClient } from '@tanstack/react-query'
 
 const titles: Record<string, string> = {
   '/': 'Dashboard',
-  '/ingreso-stock': 'Ingreso de stock',
-  '/componentes': 'Componentes',
-  '/tipos-silla': 'Tipos de silla',
-  '/ordenes-trabajo': 'Órdenes de trabajo',
-  '/usuarios': 'Usuarios',
-  '/perfil': 'Mi perfil',
+  '/catalogo': 'Catálogo',
+  '/pedidos': 'Pedidos Live',
+  '/historial': 'Historial de Ventas',
+  '/ganancias': 'Ganancias',
+  '/rutas': 'Hojas de Ruta',
+  '/configuracion': 'Configuración',
 }
 
 export function Layout() {
@@ -24,33 +24,19 @@ export function Layout() {
 
   useEffect(() => {
     if (!socket) return;
-    const handleWorkOrderCreated = () => {
-      queryClient.invalidateQueries({ queryKey: ['ordenes-trabajo'] })
-      queryClient.invalidateQueries({ queryKey: ['ordenes-trabajo', 'counts'] })
-      queryClient.invalidateQueries({ queryKey: ['ordenes-trabajo-dash'] })
-      queryClient.invalidateQueries({ queryKey: ['tipos-silla'] })
+    const handleOrderCreated = () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
     }
-    const handleWorkOrderUpdated = (data: { id: string }) => {
-      queryClient.invalidateQueries({ queryKey: ['orden-trabajo', data.id] })
-      queryClient.invalidateQueries({ queryKey: ['ordenes-trabajo'] })
-      queryClient.invalidateQueries({ queryKey: ['ordenes-trabajo', 'counts'] })
-      queryClient.invalidateQueries({ queryKey: ['ordenes-trabajo-dash'] })
-      queryClient.invalidateQueries({ queryKey: ['tipos-silla'] })
-      queryClient.invalidateQueries({ queryKey: ['stock-resumen'] })
+    const handleOrderUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
     }
     
-    const handleCatalogUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ['tipos-silla'] })
-    }
-
-    socket.on('work_order:created', handleWorkOrderCreated)
-    socket.on('work_order:updated', handleWorkOrderUpdated)
-    socket.on('catalog:updated', handleCatalogUpdated)
+    socket.on('order:created', handleOrderCreated)
+    socket.on('order:updated', handleOrderUpdated)
     
     return () => {
-      socket.off('work_order:created', handleWorkOrderCreated)
-      socket.off('work_order:updated', handleWorkOrderUpdated)
-      socket.off('catalog:updated', handleCatalogUpdated)
+      socket.off('order:created', handleOrderCreated)
+      socket.off('order:updated', handleOrderUpdated)
     }
   }, [socket, queryClient])
 

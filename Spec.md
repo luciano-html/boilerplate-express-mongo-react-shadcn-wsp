@@ -106,10 +106,3 @@ git commit -m "feat: boilerplate consolidado B2B2C Hamburgueserías (SDD)"
 git push boilerplate main
 ```
 
-**Paso B: Guardar el Proyecto Real Burger**
-```bash
-git remote add origin https://github.com/luciano-html/realburgerst.git
-git add .
-git commit -m "feat: implementación específica Real Burger"
-git push origin main
-```

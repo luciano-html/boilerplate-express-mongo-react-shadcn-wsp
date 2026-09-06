@@ -1,4 +1,4 @@
-# Reglas del Proyecto (Stock Office Center)
+# Reglas del Proyecto (Boilerplate B2B2C)
 
 ## Git y Despliegue
 - **PROHIBIDO hacer `git commit` o `git push` automáticamente.**

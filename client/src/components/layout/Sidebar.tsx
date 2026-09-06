@@ -28,7 +28,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         )}
       >
         <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-          <span className="font-bold text-lg text-sidebar-primary font-heading">Real Burger Admin</span>
+          <span className="font-bold text-lg text-sidebar-primary font-heading">Admin Panel</span>
           <button onClick={onClose} className="md:hidden text-sidebar-foreground cursor-pointer">
             <X size={20} />
           </button>

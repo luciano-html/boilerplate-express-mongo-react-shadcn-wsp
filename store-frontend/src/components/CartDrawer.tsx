@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
+import { Minus, Plus, Trash2 } from 'lucide-react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from './ui/drawer';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { ScrollArea } from './ui/scroll-area';
 import type { StoreConfig, OrderItem } from '../../../shared/index';
 
 const API_URL = 'http://localhost:5000/api';
@@ -26,8 +26,20 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, s
   
   const [selectedCity, setSelectedCity] = useState<'Santo Tomé' | 'Santa Fe'>('Santo Tomé');
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('');
+  // La zona define cuanto se cobra; la calle define a donde va el cadete.
+  const [deliveryAddress, setDeliveryAddress] = useState<string>('');
 
-  const [eta, setEta] = useState<number | null>(null);
+  // Se guarda el pedido confirmado en su propio estado. Antes la pantalla de
+  // exito leia `total`, que se deriva del carrito -- y el carrito ya estaba
+  // vacio, asi que mostraba solo el costo de envio como si fuera el total.
+  const [confirmed, setConfirmed] = useState<{
+    total: number;
+    eta: number;
+    orderNumber?: number;
+    handshakeCode?: string;
+    paymentMethod: 'cash' | 'transfer';
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const availableNeighborhoods = config.deliveryZones?.filter(z => z.city === selectedCity) || [];
   const selectedZoneCost = availableNeighborhoods.find(z => z.neighborhood === selectedNeighborhood)?.cost || 0;
@@ -42,6 +54,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, s
   const handleConfirm = async () => {
     if (!customerName || !customerPhone) return alert('Por favor, completa tus datos');
     if (orderType === 'delivery' && !selectedNeighborhood) return alert('Selecciona tu barrio');
+    if (orderType === 'delivery' && deliveryAddress.trim().length < 5) return alert('Escribi tu direccion (calle y numero)');
 
     const orderPayload = {
       customerName,
@@ -49,6 +62,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, s
       orderType,
       deliveryCity: orderType === 'delivery' ? selectedCity : undefined,
       deliveryNeighborhood: orderType === 'delivery' ? selectedNeighborhood : undefined,
+      deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
       paymentMethod,
       items: cart,
       total,
@@ -63,7 +77,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, s
         body: JSON.stringify(orderPayload)
       });
       const data = await response.json();
-      setEta(data.estimatedTime);
+      if (!response.ok) {
+        alert(data.error ?? 'No se pudo confirmar el pedido');
+        return;
+      }
+      setConfirmed({
+        total,
+        eta: data.estimatedTime,
+        orderNumber: data.orderNumber,
+        handshakeCode: data.handshakeCode,
+        paymentMethod,
+      });
       setCart([]);
     } catch (error) {
       console.error(error);
@@ -71,27 +95,95 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, s
     }
   };
 
-  if (eta !== null) {
+  if (confirmed !== null) {
+    const money = (n: number) => `$${n.toLocaleString('es-AR')}`;
+
     return (
       <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DrawerContent className="max-w-md mx-auto h-[90vh]">
-          <DrawerHeader>
-            <DrawerTitle className="text-center text-green-600 text-2xl">¡Pedido Confirmado!</DrawerTitle>
+        <DrawerContent className="max-w-md mx-auto max-h-[92dvh] bg-background flex flex-col">
+          <DrawerHeader className="shrink-0">
+            <DrawerTitle className="text-center text-emerald-400 text-2xl">¡Pedido confirmado!</DrawerTitle>
           </DrawerHeader>
-          <div className="p-4 text-center space-y-4">
-            <p>Tu pedido ha sido procesado exitosamente.</p>
-            {paymentMethod === 'transfer' && (
-              <div className="bg-yellow-50 p-4 rounded-md text-yellow-800">
-                <p className="font-bold">Por favor realiza la transferencia de ${total}.</p>
-                <p className="text-sm">Envíanos el comprobante por WhatsApp para que empecemos a prepararlo.</p>
+
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 text-center space-y-5" data-vaul-no-drag>
+            <p className="text-muted-foreground">
+              {confirmed.orderNumber
+                ? <>Tu pedido es el <span className="font-bold text-foreground">#{confirmed.orderNumber}</span>.</>
+                : 'Tu pedido fue recibido.'}
+            </p>
+
+            {confirmed.paymentMethod === 'transfer' && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 space-y-3 text-left">
+                <p className="font-bold text-amber-300">
+                  Transferí {money(confirmed.total)} para que empecemos a prepararlo.
+                </p>
+
+                {config.transferAlias ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-background/40 px-3 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">Alias</span>
+                      <span className="block truncate font-mono text-base font-bold">{config.transferAlias}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(config.transferAlias!);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }}
+                      className="shrink-0 rounded-lg border border-amber-500/40 px-3 py-2 text-xs font-bold text-amber-300"
+                    >
+                      {copied ? 'Copiado' : 'Copiar'}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-amber-200/80">
+                    Pedinos el alias por WhatsApp y mandanos el comprobante.
+                  </p>
+                )}
+
+                <p className="text-sm text-amber-200/80">
+                  Mandá el comprobante por WhatsApp: hasta que no lo verifiquemos, el pedido no entra a la cocina.
+                </p>
               </div>
             )}
-            <div className="mt-8">
-              <h4 className="text-sm text-gray-500 uppercase">Tiempo estimado</h4>
-              <p className="text-5xl font-black mt-2">{eta} <span className="text-xl">min</span></p>
+
+            {confirmed.handshakeCode && config.whatsapp && (
+              <a
+                href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(
+                  `Hola, mi pedido #${confirmed.handshakeCode}`
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex h-[52px] w-full items-center justify-center gap-2.5 rounded-xl bg-emerald-600 text-base font-bold text-white"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3.5 20.5l1.7-4.3A8.5 8.5 0 1 1 20.5 11.5Z" />
+                </svg>
+                Confirmar por WhatsApp
+              </a>
+            )}
+            {confirmed.handshakeCode && (
+              <p className="-mt-2 text-xs leading-relaxed text-muted-foreground">
+                Mandanos ese mensaje y quedás vinculado: a partir de ahí te avisamos por WhatsApp
+                cuando entre a la parrilla y cuando salga.
+              </p>
+            )}
+
+            <div className="pt-2">
+              <h4 className="text-sm uppercase tracking-wider text-muted-foreground">Tiempo estimado</h4>
+              <p className="mt-2 font-display text-5xl text-primary">
+                {confirmed.eta} <span className="text-xl text-foreground">min</span>
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Te avisamos por WhatsApp cuando entre a la parrilla y cuando salga.
+              </p>
             </div>
-            <Button className="w-full mt-8" onClick={() => { setEta(null); onClose(); }}>Cerrar</Button>
           </div>
+
+          <DrawerFooter className="shrink-0">
+            <Button className="w-full" onClick={() => { setConfirmed(null); onClose(); }}>Cerrar</Button>
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     );
@@ -99,14 +191,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, s
 
   return (
     <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="max-w-md mx-auto h-[90vh] flex flex-col">
+      <DrawerContent className="max-w-md mx-auto h-[92dvh] flex flex-col bg-background">
         <DrawerHeader>
           <DrawerTitle>Tu Pedido</DrawerTitle>
         </DrawerHeader>
 
-        <ScrollArea className="flex-1 px-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4" data-vaul-no-drag>
           {cart.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">Tu carrito está vacío</p>
+            <p className="text-center text-muted-foreground py-8">Tu carrito está vacío</p>
           ) : (
             <div className="space-y-6">
               {/* Items */}
@@ -114,15 +206,51 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, s
                 {cart.map((item, idx) => {
                   const optionsTotal = (item.selectedOptions || []).reduce((sum, opt) => sum + opt.additionalPrice, 0);
                   return (
-                    <div key={idx} className="flex justify-between items-start border-b pb-4">
-                      <div>
-                        <p className="font-medium">{item.quantity}x Producto ID: {item.productId}</p>
-                        {item.selectedOptions?.map(opt => (
-                          <p key={opt.optionName} className="text-sm text-gray-500">+ {opt.optionName}</p>
-                        ))}
-                        {item.notes && <p className="text-xs text-orange-600 mt-1">Nota: {item.notes}</p>}
+                    <div key={idx} className="flex flex-col gap-2 border-b border-border pb-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium">{item.name ?? 'Producto'}</p>
+                          {item.selectedOptions?.map(opt => (
+                            <p key={opt.optionName} className="text-sm text-muted-foreground">+ {opt.optionName}</p>
+                          ))}
+                          {item.notes && <p className="text-xs text-amber-400 mt-1">Nota: {item.notes}</p>}
+                        </div>
+                        <p className="whitespace-nowrap font-bold">${(item.unitPrice + optionsTotal) * item.quantity}</p>
                       </div>
-                      <p className="font-bold">${(item.unitPrice + optionsTotal) * item.quantity}</p>
+
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 rounded-lg border border-border bg-card px-1">
+                          <button
+                            type="button"
+                            aria-label="Quitar uno"
+                            onClick={() => setCart(prev => prev.map((it, i) =>
+                              i === idx ? { ...it, quantity: Math.max(1, it.quantity - 1) } : it
+                            ))}
+                            className="flex h-9 w-9 items-center justify-center text-muted-foreground"
+                          >
+                            <Minus size={16} />
+                          </button>
+                          <span className="min-w-[22px] text-center text-sm font-bold">{item.quantity}</span>
+                          <button
+                            type="button"
+                            aria-label="Agregar uno"
+                            onClick={() => setCart(prev => prev.map((it, i) =>
+                              i === idx ? { ...it, quantity: it.quantity + 1 } : it
+                            ))}
+                            className="flex h-9 w-9 items-center justify-center"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setCart(prev => prev.filter((_, i) => i !== idx))}
+                          className="flex h-9 items-center gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:text-primary"
+                        >
+                          <Trash2 size={14} /> Eliminar
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -145,7 +273,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, s
 
               {/* Delivery Zone Selector */}
               {orderType === 'delivery' && (
-                <div className="space-y-3 bg-gray-50 p-3 rounded-lg">
+                <div className="space-y-3 bg-secondary p-3 rounded-lg">
                   <Label>Ciudad</Label>
                   <Select value={selectedCity} onValueChange={(v: any) => setSelectedCity(v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -166,6 +294,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, s
                       ))}
                     </SelectContent>
                   </Select>
+
+                  {/* El barrio dice cuanto se cobra; esto dice a donde va el cadete.
+                      Sin este campo el pedido llega al tablero con el barrio y nada mas. */}
+                  <Label className="mt-2 block">Dirección</Label>
+                  <Input
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    placeholder="Calle y número, piso/depto"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Si hay alguna referencia útil (portón, timbre), agregala acá.
+                  </p>
                 </div>
               )}
 
@@ -192,9 +332,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, s
               </div>
             </div>
           )}
-        </ScrollArea>
+        </div>
 
-        <DrawerFooter className="border-t bg-white">
+        <DrawerFooter className="shrink-0 border-t border-border bg-card">
           <div className="flex justify-between items-center mb-4">
             <span className="font-bold">Total:</span>
             <span className="text-2xl font-black">${total}</span>

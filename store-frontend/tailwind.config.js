@@ -17,6 +17,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Barlow', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        display: ['Archivo Black', 'Arial Black', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

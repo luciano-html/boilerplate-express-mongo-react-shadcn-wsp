@@ -2,6 +2,8 @@ import { Product } from '../models/Product';
 import { StoreConfig } from '../models/StoreConfig';
 import { Order } from '../models/Order';
 import { whatsappService } from './whatsappService';
+import { createOrderRecord, matchDeliveryZone } from './orderService';
+import { extractHandshakeCode } from '../utils/handshakeCode';
 
 type SessionState = 'GREETING' | 'SELECTING_ITEMS' | 'ASK_ORDER_TYPE' | 'ASK_ADDRESS' | 'ASK_PAYMENT' | 'CONFIRMATION';
 
@@ -25,7 +27,66 @@ interface ChatSession {
 
 const sessions = new Map<string, ChatSession>();
 
+/** Media hora: pasado eso el codigo no vincula nada. */
+const HANDSHAKE_WINDOW_MS = 30 * 60 * 1000;
+
+/**
+ * El cliente armo el pedido en la tienda y llega con un codigo. Vincular ese
+ * codigo nos deja el JID REAL desde el que escribio, que es lo que necesita
+ * sendMessage -- y no el telefono que tipeo en un formulario, que puede tener
+ * un typo, ser el fijo de la casa o estar sin el 9.
+ *
+ * Devuelve true si manejo el mensaje.
+ */
+async function tryHandshake(from: string, body: string): Promise<boolean> {
+  const code = extractHandshakeCode(body);
+  if (!code) return false;
+
+  const order = await Order.findOne({
+    handshakeCode: code,
+    customerJid: { $exists: false },
+    createdAt: { $gte: new Date(Date.now() - HANDSHAKE_WINDOW_MS) },
+    status: { $nin: ['closed', 'cancelled'] },
+  });
+
+  if (!order) {
+    // Codigo vencido, ya usado o inventado. No se dice cual: no hace falta
+    // contarle a nadie que ese codigo existio.
+    await whatsappService.sendMessage(
+      from,
+      'No encontré ese pedido. Puede que haya pasado mucho tiempo. Escribí *HOLA* y lo armamos por acá.'
+    );
+    return true;
+  }
+
+  order.customerJid = from;
+  order.confirmedAt = new Date();
+  await order.save();
+
+  const detalle = order.items
+    .map((i: any) => `${i.quantity}x ${i.name ?? 'Producto'}`)
+    .join('\n');
+
+  let msg = `Listo, ${order.customerName}. Tu pedido *#${order.orderNumber}* quedó confirmado.\n\n${detalle}\n\n`;
+  msg += `*Total:* $${order.total}\n`;
+  msg += `*Tiempo estimado:* ${order.estimatedTime} minutos\n\n`;
+  if (order.paymentStatus === 'pending') {
+    const alias = (await StoreConfig.findOne())?.transferAlias;
+    msg += alias
+      ? `Transferí al alias *${alias}* y mandanos el comprobante por acá. Hasta que no lo veamos, no entra a la cocina.\n\n`
+      : `Mandanos el comprobante de la transferencia por acá. Hasta que no lo veamos, no entra a la cocina.\n\n`;
+  }
+  msg += 'Te vamos avisando por este chat.';
+
+  await whatsappService.sendMessage(from, msg);
+  return true;
+}
+
 export const handleIncomingMessage = async (from: string, body: string, senderName: string) => {
+  // El handshake va primero: quien llega con un codigo no quiere el menu
+  // conversacional, ya eligió en la web.
+  if (await tryHandshake(from, body)) return;
+
   const text = body.trim().toLowerCase();
   let session = sessions.get(from);
 
@@ -190,25 +251,37 @@ async function handleConfirmation(session: ChatSession, from: string, text: stri
     // Save to DB
     const total = session.cart.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0);
     
-    const newOrder = await Order.create({
+    // La direccion es texto libre y va a deliveryAddress. Antes se guardaba en
+    // deliveryNeighborhood, que es la ZONA: con eso el pedido nunca pagaba
+    // envio y no se podia agrupar por barrio en las hojas de ruta.
+    const zone = session.orderType === 'delivery' && session.address
+      ? await matchDeliveryZone(session.address)
+      : null;
+
+    const { order: newOrder } = await createOrderRecord({
       items: session.cart.map(i => ({
         productId: i.productId,
         quantity: i.quantity,
-        unitPrice: i.unitPrice
+        unitPrice: i.unitPrice,
       })),
-      total,
-      customerName: session.customerName,
+      total: total + (zone?.cost ?? 0),
+      customerName: session.customerName!,
       customerPhone: session.phone,
-      orderType: session.orderType,
-      deliveryNeighborhood: session.address,
-      paymentMethod: session.paymentMethod,
-      status: session.paymentMethod === 'transfer' ? 'pending_payment' : 'pending'
+      orderType: session.orderType!,
+      deliveryCity: zone?.city,
+      deliveryNeighborhood: zone?.neighborhood,
+      deliveryAddress: session.orderType === 'delivery' ? session.address : undefined,
+      paymentMethod: session.paymentMethod!,
     });
 
-    let msg = `🎉 *¡Pedido confirmado!* Tu número de orden es #${newOrder._id.toString().slice(-4)}.\n\n`;
+    let msg = `🎉 *¡Pedido confirmado!* Tu número de orden es #${newOrder.orderNumber}.\n\n`;
     if (session.paymentMethod === 'transfer') {
-      msg += `Por favor, transfiere el total ($${total}) al alias: *NUESTRO.ALIAS.AQUI* y envíanos el comprobante por este medio.\n\n`;
+      const alias = (await StoreConfig.findOne())?.transferAlias;
+      msg += alias
+        ? `Por favor, transfiere el total ($${total}) al alias *${alias}* y envíanos el comprobante por este medio.\n\n`
+        : `Por favor, transfiere el total ($${total}) y envíanos el comprobante por este medio.\n\n`;
     }
+    msg += `Tiempo estimado: *${newOrder.estimatedTime} minutos*.\n\n`;
     msg += `Te avisaremos por aquí cuando tu pedido esté en camino/listo. ¡Gracias por elegirnos!`;
 
     await whatsappService.sendMessage(from, msg);

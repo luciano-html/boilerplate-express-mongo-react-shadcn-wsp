@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/services/api'
-import type { Product } from 'shared'
+import type { Product, StoreConfig } from 'shared'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +14,17 @@ export default function Catalogo() {
   const queryClient = useQueryClient()
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  // Las categorías salen del navbar: son la misma cosa. Antes esto era un input
+  // libre, así que cada typo creaba una categoría fantasma que no existía en
+  // ningún menú y dejaba el producto invisible en la tienda.
+  const { data: config } = useQuery<StoreConfig>({
+    queryKey: ['store-config'],
+    queryFn: () => api.get('/config').then(res => res.data),
+  })
+
+  const categories = (config?.navSections ?? []).filter(s => s.type === 'category')
+  const labelFor = (slug: string) => categories.find(c => c.slug === slug)?.label ?? slug
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ['products'],
@@ -50,7 +61,7 @@ export default function Catalogo() {
   }
 
   const handleNew = () => {
-    setEditingProduct({ name: '', price: 0, category: 'General', stock: 100, isActive: true })
+    setEditingProduct({ name: '', price: 0, categorySlug: categories[0]?.slug ?? '', stock: 100, isActive: true })
     setIsDialogOpen(true)
   }
 
@@ -110,7 +121,7 @@ export default function Catalogo() {
                   {prod.isActive ? 'Activo' : 'Inactivo'}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">{prod.category}</p>
+              <p className="text-sm text-muted-foreground">{labelFor(prod.categorySlug)}</p>
             </CardHeader>
             <CardContent>
               <p className="font-bold text-xl mb-4">${prod.price}</p>
@@ -169,7 +180,17 @@ export default function Catalogo() {
               </div>
               <div className="space-y-2">
                 <Label>Categoría</Label>
-                <Input value={editingProduct.category} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} required />
+                <select
+                  value={editingProduct.categorySlug}
+                  onChange={e => setEditingProduct({...editingProduct, categorySlug: e.target.value})}
+                  required
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {categories.length === 0 && <option value="">Creá una categoría en Navegación</option>}
+                  {categories.map(c => (
+                    <option key={c.slug} value={c.slug}>{c.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <Button type="submit" className="w-full" disabled={saveMutation.isPending}>

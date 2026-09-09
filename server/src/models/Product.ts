@@ -21,7 +21,8 @@ const productSchema = new Schema<IProduct>(
     description: { type: String },
     price: { type: Number, required: true },
     stock: { type: Number, required: true, default: 0 },
-    category: { type: String, required: true },
+    // Slug de la NavSection. El label visible vive en StoreConfig.navSections.
+    categorySlug: { type: String, required: true, trim: true, index: true },
     isActive: { type: Boolean, default: true },
     images: [{ type: String }],
     optionGroups: [productOptionGroupSchema],

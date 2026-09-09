@@ -15,11 +15,14 @@ export default function Configuracion() {
   
   const [qr, setQr] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
+  // Deshabilitado a nivel instalacion (.env). Distinto de "apagado" por el toggle.
+  const [botEnabled, setBotEnabled] = useState(true)
   const [form, setForm] = useState<Partial<StoreConfig>>({})
 
   const { data: configData, isLoading } = useQuery({
     queryKey: ['store-config'],
-    queryFn: () => api.get('/config').then(res => res.data)
+    queryFn: () => api.get('/config').then(res => res.data),
+    refetchOnWindowFocus: false,
   })
 
   useEffect(() => {
@@ -32,6 +35,7 @@ export default function Configuracion() {
     api.get('/whatsapp/status').then(res => {
       setIsConnected(res.data.connected)
       setQr(res.data.qr)
+      setBotEnabled(res.data.enabled !== false)
     })
 
     const socketURL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : '')
@@ -64,13 +68,30 @@ export default function Configuracion() {
     }
   })
 
+  const [isRestarting, setIsRestarting] = useState(false)
+
   const handleRefreshQr = async () => {
-    const res = await api.get('/whatsapp/status')
-    setIsConnected(res.data.connected)
-    setQr(res.data.qr)
+    setIsRestarting(true)
+    try {
+      if (!isConnected && !qr) {
+        await api.post('/whatsapp/restart')
+      } else {
+        const res = await api.get('/whatsapp/status')
+        if (res.data.connected) {
+          setIsConnected(true)
+          setQr(null)
+        } else if (!res.data.qr) {
+          await api.post('/whatsapp/restart')
+        }
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsRestarting(false)
+    }
   }
 
-  const handleChange = (field: keyof StoreConfig, value: string | number) => {
+  const handleChange = (field: keyof StoreConfig, value: string | number | boolean) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
@@ -98,6 +119,7 @@ export default function Configuracion() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            
             <div className="flex items-center gap-2 mb-4">
               Estado: 
               {isConnected ? (
@@ -107,6 +129,26 @@ export default function Configuracion() {
               )}
             </div>
 
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
+              <div>
+                <h3 className="font-semibold">Chatbot Automático</h3>
+                <p className="text-sm text-muted-foreground">Activa o desactiva la respuesta automática a los clientes.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={form.isBotActive || false}
+                  onChange={(e) => {
+                    const active = e.target.checked;
+                    handleChange('isBotActive', active);
+                    updateMutation.mutate({ ...form, isBotActive: active });
+                  }} 
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+              </label>
+            </div>
+
             {!isConnected && qr ? (
               <div className="flex flex-col items-center justify-center space-y-4 p-4 border rounded-lg bg-white/5">
                 <QRCodeSVG value={qr} size={256} className="bg-white p-2 rounded-md" />
@@ -114,15 +156,20 @@ export default function Configuracion() {
                   Abre WhatsApp en tu teléfono, ve a Dispositivos Vinculados y escanea este código.
                 </p>
               </div>
+            ) : !isConnected && !botEnabled ? (
+              <div className="p-4 border rounded-lg bg-[#fdf0dd] text-center text-sm text-[#b45309]">
+                El bot está deshabilitado en esta instalación.<br />
+                Para habilitarlo, poné <code>WHATSAPP_BOT_ENABLED=true</code> en <code>server/.env</code> y reiniciá el server.
+              </div>
             ) : !isConnected && !qr ? (
               <div className="p-4 border rounded-lg bg-white/5 text-center text-muted-foreground">
                 Esperando código QR del servidor...
               </div>
             ) : null}
 
-            <Button variant="outline" className="w-full" onClick={handleRefreshQr}>
-              <RefreshCcw size={16} className="mr-2" />
-              Actualizar Estado / Refrescar QR
+            <Button variant="outline" className="w-full" onClick={handleRefreshQr} disabled={isRestarting || !botEnabled}>
+              <RefreshCcw size={16} className={`mr-2 ${isRestarting ? 'animate-spin' : ''}`} />
+              {isRestarting ? 'Reiniciando WhatsApp...' : 'Actualizar Estado / Refrescar QR'}
             </Button>
           </CardContent>
         </Card>
@@ -146,6 +193,18 @@ export default function Configuracion() {
                 <Label>Moneda (ej. ARS, USD)</Label>
                 <Input value={form.currency || ''} onChange={(e) => handleChange('currency', e.target.value)} />
               </div>
+              <div className="space-y-2">
+                <Label>Alias para transferencias</Label>
+                <Input
+                  value={form.transferAlias || ''}
+                  onChange={(e) => handleChange('transferAlias', e.target.value)}
+                  placeholder="mi.alias.mp"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Se le muestra al cliente al confirmar y lo manda el bot. Vacío = no se menciona ningún alias.
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label>Horario de Atención</Label>
                 <Input value={form.businessHours || ''} onChange={(e) => handleChange('businessHours', e.target.value)} placeholder="Ej: Lunes a Viernes de 19 a 23" />

@@ -30,13 +30,18 @@ export function Layout() {
     const handleOrderUpdated = () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
     }
+    const handleReconnect = () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    }
     
     socket.on('order:created', handleOrderCreated)
     socket.on('order:updated', handleOrderUpdated)
+    socket.on('connect', handleReconnect)
     
     return () => {
       socket.off('order:created', handleOrderCreated)
       socket.off('order:updated', handleOrderUpdated)
+      socket.off('connect', handleReconnect)
     }
   }, [socket, queryClient])
 

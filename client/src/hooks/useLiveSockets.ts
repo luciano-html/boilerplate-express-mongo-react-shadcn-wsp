@@ -22,12 +22,10 @@ export const useLiveSockets = () => {
       setEventsLog(prev => [{ time: new Date().toLocaleTimeString(), event: 'disconnected', data: null }, ...prev]);
     });
 
-    socketInstance.on('seat:seed', (data) => {
-      setEventsLog(prev => [{ time: new Date().toLocaleTimeString(), event: 'seat:seed', data }, ...prev]);
-    });
-
-    socketInstance.on('seat:updated', (data) => {
-      setEventsLog(prev => [{ time: new Date().toLocaleTimeString(), event: 'seat:updated', data }, ...prev]);
+    // seat:seed y seat:updated eran de stockOcenter (la app de stock de sillas).
+    // Este proyecto no los emite nunca.
+    socketInstance.on('order:updated', (data) => {
+      setEventsLog(prev => [{ time: new Date().toLocaleTimeString(), event: 'order:updated', data }, ...prev]);
     });
 
     socketInstance.on('order:created', (data) => {

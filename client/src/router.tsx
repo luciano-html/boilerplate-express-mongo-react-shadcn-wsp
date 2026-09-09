@@ -9,9 +9,10 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const PedidosLive = lazy(() => import('@/pages/PedidosLive'))
 
 const Catalogo = lazy(() => import('@/pages/Catalogo'))
-const Historial = () => <div>Historial de Ventas</div>
-const Ganancias = () => <div>Módulo de Ganancias</div>
-const HojasRuta = () => <div>Hojas de Ruta</div>
+const Navegacion = lazy(() => import('@/pages/Navegacion'))
+const Historial = lazy(() => import('@/pages/Historial'))
+const Ganancias = lazy(() => import('@/pages/Ganancias'))
+const HojasRuta = lazy(() => import('@/pages/HojasRuta'))
 const Configuracion = lazy(() => import('@/pages/Configuracion'))
 
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
@@ -29,10 +30,11 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <SuspenseWrapper><Dashboard /></SuspenseWrapper> },
       { path: 'catalogo', element: <SuspenseWrapper><Catalogo /></SuspenseWrapper> },
+      { path: 'navegacion', element: <SuspenseWrapper><Navegacion /></SuspenseWrapper> },
       { path: 'pedidos', element: <PedidosLive /> },
-      { path: 'historial', element: <Historial /> },
-      { path: 'ganancias', element: <Ganancias /> },
-      { path: 'rutas', element: <HojasRuta /> },
+      { path: 'historial', element: <SuspenseWrapper><Historial /></SuspenseWrapper> },
+      { path: 'ganancias', element: <SuspenseWrapper><Ganancias /></SuspenseWrapper> },
+      { path: 'rutas', element: <SuspenseWrapper><HojasRuta /></SuspenseWrapper> },
       { path: 'configuracion', element: <SuspenseWrapper><Configuracion /></SuspenseWrapper> },
     ],
   },

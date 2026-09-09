@@ -43,6 +43,7 @@ import orderRoutes from './routes/orderRoutes';
 import productRoutes from './routes/productRoutes';
 
 import uploadRoutes from './routes/uploadRoutes';
+import routeRoutes from './routes/routeRoutes';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/config', storeConfigRoutes);
@@ -50,6 +51,7 @@ app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/rutas', routeRoutes);
 
 // Static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

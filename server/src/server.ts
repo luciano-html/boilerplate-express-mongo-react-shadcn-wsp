@@ -4,6 +4,7 @@ dotenv.config();
 import app from './app';
 import { connectDB } from './config/db';
 import { whatsappService } from './services/whatsappService';
+import { startMessageQueue } from './services/messageQueue';
 
 const PORT = Number(process.env.PORT ?? 3000);
 
@@ -69,6 +70,11 @@ async function main() {
   whatsappService.on('disconnected', () => {
     io.emit('whatsapp_disconnected');
   });
+
+  // Recien aca se decide si levantar el bot: necesita la DB conectada para
+  // leer isBotActive, y los listeners de socket ya enganchados para emitir el QR.
+  await whatsappService.bootstrap();
+  startMessageQueue();
 
   io.on('connection', (socket) => {
     console.log(`Socket conectado: ${socket.id}`);

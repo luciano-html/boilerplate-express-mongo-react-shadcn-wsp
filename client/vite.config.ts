@@ -14,7 +14,14 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3001,
-      proxy: { '/api': apiUrl },
+      proxy: {
+        '/api': apiUrl,
+        // Sin esto el socket se conecta al dev server de Vite (mismo origen que
+        // la pagina) en vez de al backend, y los eventos en vivo -- el QR de
+        // WhatsApp, los pedidos -- no llegan nunca. `ws: true` es obligatorio:
+        // socket.io arranca por HTTP y despues hace upgrade a WebSocket.
+        '/socket.io': { target: apiUrl, ws: true },
+      },
       allowedHosts: true,
     },
   }

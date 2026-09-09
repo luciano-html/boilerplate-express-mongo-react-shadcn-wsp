@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ListOrdered, LayoutDashboard, FileText, Settings, BadgeDollarSign, Route } from 'lucide-react'
+import { ListOrdered, LayoutDashboard, Settings } from 'lucide-react'
 
 export default function Dashboard() {
   const { user } = useAuth()

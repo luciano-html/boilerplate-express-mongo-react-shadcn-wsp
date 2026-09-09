@@ -1,61 +1,56 @@
-Este proyecto es una app web para gestionar stock de componentes de sillas (Node + Express + MongoDB backend, React + Vite frontend).
+Este proyecto es un boilerplate B2B2C para locales de comida: tienda pública, panel de empleados y bot de WhatsApp, con un deployment por cliente (no multitenant).
 
-## Stack definido (SDD)
+## Stack
 - Backend: Node + Express + TypeScript + Mongoose + Zod
-- Frontend: React + Vite + shadcn/ui + TanStack Query + react-hook-form + Zod
-- BD: MongoDB
-- Skill: `node-express-mongo-react` (`.opencode/skills/node-express-mongo-react/SKILL.md`)
-- Paleta oficial: `docs/sdd/09-paleta-oficial-colores.md`
+- Admin (`client/`): React + Vite + shadcn/ui + TanStack Query + Recharts
+- Tienda (`store-frontend/`): React + Vite + Tailwind
+- Tipos compartidos: `shared/` (workspace de npm)
+- BD: MongoDB en Docker, publicado en el **puerto 27018**
+- WhatsApp: `whatsapp-web.js`
 
-## 📋 Persistencia entre sesiones — leer en cada inicio
-1. Leer `STATUS.md` entero (estado + changelog + contexto de sesión)
-2. Leer `docs/sdd/09-paleta-oficial-colores.md` (colores y fuente)
-3. Si hay cambios en progreso, continuar desde la última entrada del changelog
-
-## Estado actual
-El proyecto base (12 fases) está COMPLETO. Se están haciendo mejoras post-desarrollo.
-
-Probar local:
+## Levantar en local
 ```
-cd server && npm run dev
-cd client && npm run dev
+start.bat            # docker compose up -d + npm run dev
 ```
-Admin: `admin / admin123` — Solo existe Link con 9 componentes (Rolic, alerta=10).
-
-Seed eliminado. La app persiste datos en MongoDB.
-
-## 📝 Commit policy
-Los commits son **semi-automáticos**:
-
-1. La IA prepara el commit cuando hay un cambio significativo (feature completa, fix importante, refactor).
-2. Antes de commitear, la IA muestra `git status` + `git diff --stat` (y el diff si es necesario) para revisión del usuario.
-3. El usuario confirma explícitamente antes de ejecutar `git commit` y `git push`.
-4. Cada commit debe agrupar un cambio lógico coherente. No mezclar feature + fix + refactor en un mismo commit.
-5. Usar **Conventional Commits**. Ver guía en `docs/sdd/12-conventional-commits.md`.
-6. Nunca commitear builds, logs, archivos temporales ni credenciales. Revisar `.gitignore` antes de confirmar.
-
-## 📝 Documentar en STATUS.md
-Todo cambio relevante se documenta en la sección **Changelog** de `STATUS.md` con formato:
-```markdown
-### YYYY-MM-DD: título corto
-- [tipo]: descripción
+o a mano:
+```
+docker compose up -d
+npm run dev          # server :5000, admin :3001, tienda :3002
 ```
 
-Además, la sección **Última sesión** de `STATUS.md` se actualiza cada vez que se termina una sesión con cambios.
+Admin: `admin@admin.com` / `admin123`.
 
-## Rutas clave del frontend
+## Variables importantes (`server/.env`)
+- `WHATSAPP_BOT_ENABLED` — **default false**. Sin esto en `true` el bot no se conecta ni aunque el toggle del admin esté prendido.
+- `WHATSAPP_ALLOWED_NUMBERS` — allowlist de clientes; filtra entrada y salida. Dejala puesta mientras testees sobre una línea real.
+- `WHATSAPP_MAX_MESSAGE_AGE_SECONDS` — ventana de gracia tras una reconexión (default 600).
+- `LOG_LEVEL` — `debug` muestra las renovaciones del QR y los mensajes descartados.
+
+## Migraciones
+```
+cd server
+npx tsx src/scripts/migrateNavSections.ts
+npx tsx src/scripts/migrateOrderStatus.ts
+npx tsx src/scripts/migrateDeliveryAddress.ts
+```
+Las tres son idempotentes.
+
+## Rutas del admin
 | Ruta | Página |
 |---|---|
 | `/` | Dashboard |
-| `/ingreso-stock` | Ingreso/egreso + historial |
-| `/componentes` | Lista de componentes |
-| `/componentes/nuevo` | Crear componente |
-| `/componentes/:id` | Editar componente |
-| `/tipos-silla` | Tipos de silla |
-| `/tipos-silla/nuevo` | Nuevo tipo |
-| `/tipos-silla/:id` | Editar tipo + BOM |
-| `/ordenes-trabajo` | Órdenes de trabajo |
-| `/ordenes-trabajo/nuevo` | Nueva OT |
-| `/ordenes-trabajo/:id` | Detalle OT |
-| `/usuarios` | Admin: gestión de usuarios |
-| `/perfil` | Mi perfil |
+| `/pedidos` | Pedidos Live (Kanban) |
+| `/catalogo` | Catálogo de productos |
+| `/navegacion` | Navegación de la tienda |
+| `/historial` | Historial de Ventas |
+| `/ganancias` | Ganancias |
+| `/rutas` | Hojas de Ruta |
+| `/configuracion` | Configuración y QR de WhatsApp |
+
+## Commit policy
+**ESTRICTAMENTE PROHIBIDO** hacer `git commit` o `git push` de forma autónoma. Solo cuando el usuario lo ordene explícitamente. Ver `.agents/rules/git-workflow.md`.
+
+Conventional Commits, un cambio lógico por commit. Nunca commitear builds, logs, `server/.wwebjs_auth/` ni credenciales.
+
+## Documentación viva
+El estado y el roadmap se mantienen en el proyecto de Claude "BoilerplateCasaDeComidas": `roadmap-gaps.md`, `roadmap-precios.md`, `estados-y-eta.md`.

@@ -16,3 +16,8 @@ server/uploads/
 # Logs
 server/logs/
 logs/
+
+# Config local de agentes (Claude Code, impeccable, hooks y settings locales)
+.claude/
+.opencode/local/
+_to_delete/

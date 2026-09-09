@@ -10,7 +10,7 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 async function seed() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/b2b2c-boilerplate');
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27018/b2b2c-boilerplate');
     console.log('MongoDB Connected');
 
     await User.deleteMany({});
@@ -47,7 +47,7 @@ async function seed() {
         description: 'Medallón de 120g, cheddar, lechuga y tomate.',
         price: 5000, 
         stock: 100, 
-        category: 'Hamburguesas', 
+        categorySlug: 'hamburguesas', 
         isActive: true,
         optionGroups: [
           {
@@ -66,7 +66,7 @@ async function seed() {
         description: 'Doble medallón, incluye papas y bebida.',
         price: 8500, 
         stock: 50, 
-        category: 'Combos', 
+        categorySlug: 'combos', 
         isActive: true,
         optionGroups: [
           {

@@ -16,7 +16,7 @@
     "jsx": "react-jsx",
 
     /* Linting */
-    "paths": { "@/*": ["./src/*"] },
+    "paths": { "@/*": ["./src/*"], "shared": ["../shared/index.ts"] },
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
